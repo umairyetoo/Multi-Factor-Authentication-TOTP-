@@ -1,10 +1,10 @@
-const InMemoryUserRepository = require('../repositories/InMemoryUserRepository');
+const { userRepository } = require('../repositories');
 const TotpService = require('../services/TotpService');
 const AuthService = require('../services/AuthService');
 
-// Instantiate services and inject dependencies
+// Instantiate services and inject the persistent JSON-file repository
 const totpService = new TotpService();
-const authService = new AuthService(InMemoryUserRepository, totpService);
+const authService = new AuthService(userRepository, totpService);
 
 /**
  * Controller handling standard Authentication endpoints.
@@ -98,8 +98,8 @@ class AuthController {
    */
   me = async (req, res, next) => {
     try {
-      // Find user from repository
-      const user = await InMemoryUserRepository.findById(req.session.userId);
+      // Find user from the persistent repository
+      const user = await userRepository.findById(req.session.userId);
       if (!user) {
         return res.status(401).json({
           status: 'fail',

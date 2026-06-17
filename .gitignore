@@ -9,6 +9,9 @@ jspm_packages/
 .env.test.local
 .env.production.local
 
+# Local JSON database (user data with hashed passwords and MFA secrets)
+data/
+
 # Logs
 logs
 *.log

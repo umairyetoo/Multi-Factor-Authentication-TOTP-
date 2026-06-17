@@ -1,13 +1,13 @@
-const InMemoryUserRepository = require('../repositories/InMemoryUserRepository');
+const { userRepository } = require('../repositories');
 const TotpService = require('../services/TotpService');
 const QrCodeService = require('../services/QrCodeService');
 const AuthService = require('../services/AuthService');
 const { BadRequestError } = require('../core/AppError');
 
-// Instantiate services and inject dependencies
+// Instantiate services and inject the persistent JSON-file repository
 const totpService = new TotpService();
 const qrCodeService = new QrCodeService();
-const authService = new AuthService(InMemoryUserRepository, totpService);
+const authService = new AuthService(userRepository, totpService);
 
 /**
  * Controller handling Multi-Factor Authentication setup, validation, and verification.

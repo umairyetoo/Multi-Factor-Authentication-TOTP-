@@ -23,10 +23,14 @@ Create a `.env` file in the root directory and populate it with your settings:
 PORT=<port_no>
 SESSION_SECRET=<your_secret_key>
 MFA_ISSUER=<your_issuer_name>
+DB_PATH=./data/users
 ```
 * `PORT`: The port on which the Express server will listen.
 * `SESSION_SECRET`: The secret key used to sign the session cookie.
 * `MFA_ISSUER`: The brand name displayed inside authenticator apps (e.g. Google Authenticator) next to the OTP code.
+* `DB_PATH`: File path (without `.json` extension) where user data is persisted. The file is created automatically on first run.
+
+> **Data Persistence:** User registrations, passwords, and MFA settings are stored in a local JSON file (`data/users.json`) using [node-json-db](https://www.npmjs.com/package/node-json-db). Data survives server restarts. A default `admin / password123` user is seeded automatically when the database is first created.
 
 ### Running the Application
 To run the server in development mode with debugging enabled:
