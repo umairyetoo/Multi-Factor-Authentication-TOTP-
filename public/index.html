@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Production-ready MFA (TOTP) Demo Application using Express.js. Designed with glassmorphic styles and SOLID principles.">
+  <title>ShieldAuth - Premium MFA Demo</title>
+  
+  <!-- Modern Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Premium CSS Styling -->
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <!-- Dynamic Glowing Background Nodes -->
+  <div class="glow-orb glow-orb-1"></div>
+  <div class="glow-orb glow-orb-2"></div>
+
+  <!-- Central Glassmorphic Layout -->
+  <main class="app-container">
+    
+    <!-- Top Brand Header -->
+    <header class="app-header">
+      <div class="logo-container">
+        <svg class="shield-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 12 4 18 12 22Z" stroke="url(#shield-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 11V15" stroke="#00f2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="8" r="1" fill="#00f2fe"/>
+          <defs>
+            <linearGradient id="shield-grad" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00f2fe"/>
+              <stop offset="1" stop-color="#4facfe"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-text">Shield<span class="logo-highlight">Auth</span></span>
+      </div>
+      <p class="subtitle">Multi-Factor Authentication Workspace</p>
+    </header>
+
+    <!-- Unified Form/Dashboard Container -->
+    <section class="glass-card" id="main-card">
+      
+      <!-- Notifications Alert Banner -->
+      <div id="alert-banner" class="alert hidden">
+        <span id="alert-message"></span>
+        <button id="alert-close-btn" class="alert-close">&times;</button>
+      </div>
+
+      <!-- ================= SIGN UP SCREEN ================= -->
+      <div id="signup-screen" class="screen">
+        <h2 class="screen-title">Create Account</h2>
+        <p class="screen-desc">Get started with our secure credential vault</p>
+        
+        <form id="signup-form" class="form-layout" novalidate>
+          <div class="input-group">
+            <label for="signup-username">Username</label>
+            <input type="text" id="signup-username" placeholder="Choose a username" required autocomplete="username">
+          </div>
+          
+          <div class="input-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" placeholder="Create a secure password" required autocomplete="new-password">
+          </div>
+          
+          <button type="submit" id="signup-submit-btn" class="btn btn-primary">
+            <span>Sign Up</span>
+            <div class="spinner hidden" id="signup-spinner"></div>
+          </button>
+        </form>
+        
+        <div class="footer-link">
+          Already have an account? <a href="#" id="goto-login-btn">Log In</a>
+        </div>
+      </div>
+
+      <!-- ================= LOG IN SCREEN ================= -->
+      <div id="login-screen" class="screen hidden">
+        <h2 class="screen-title">Welcome Back</h2>
+        <p class="screen-desc">Sign in with your registered credentials</p>
+        
+        <form id="login-form" class="form-layout" novalidate>
+          <div class="input-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Enter your username" required autocomplete="username">
+          </div>
+          
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+          </div>
+          
+          <button type="submit" id="login-submit-btn" class="btn btn-primary">
+            <span>Continue</span>
+            <div class="spinner hidden" id="login-spinner"></div>
+          </button>
+        </form>
+
+        <div class="preseed-notice">
+          <p>Demo Account: <code class="code-highlight">admin</code> / <code class="code-highlight">password123</code></p>
+        </div>
+        
+        <div class="footer-link">
+          Don't have an account? <a href="#" id="goto-signup-btn">Sign Up</a>
+        </div>
+      </div>
+
+      <!-- ================= MFA CHALLENGE SCREEN (Phase 2) ================= -->
+      <div id="mfa-challenge-screen" class="screen hidden">
+        <h2 class="screen-title">Security Verification</h2>
+        <p class="screen-desc">Enter the 6-digit verification code from your authenticator app</p>
+        
+        <form id="mfa-challenge-form" class="form-layout">
+          <div class="otp-container">
+            <input type="text" id="mfa-otp-code" class="otp-input" placeholder="000000" maxlength="6" pattern="\d{6}" inputmode="numeric" required autocomplete="one-time-code">
+          </div>
+          
+          <button type="submit" id="mfa-challenge-submit-btn" class="btn btn-primary">
+            <span>Verify & Authenticate</span>
+            <div class="spinner hidden" id="challenge-spinner"></div>
+          </button>
+        </form>
+        
+        <div class="footer-link">
+          <a href="#" id="cancel-mfa-btn">Back to Login</a>
+        </div>
+      </div>
+
+      <!-- ================= DASHBOARD SCREEN ================= -->
+      <div id="dashboard-screen" class="screen hidden">
+        <div class="dashboard-header">
+          <div>
+            <h2 class="dashboard-title">Dashboard</h2>
+            <p class="dashboard-user">Logged in as <span id="username-display" class="user-highlight"></span></p>
+          </div>
+          <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+        </div>
+
+        <hr class="divider">
+
+        <!-- MFA Settings Card -->
+        <div class="mfa-settings-box">
+          <div class="mfa-status-header">
+            <div class="status-info">
+              <h3 class="mfa-title">2-Factor Authentication (TOTP)</h3>
+              <p class="mfa-desc">Secure your account with time-based tokens</p>
+            </div>
+            
+            <!-- Beautiful Glowing Switch Toggle -->
+            <label class="switch-container">
+              <input type="checkbox" id="mfa-toggle">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <!-- MFA Status Badge -->
+          <div class="badge-row">
+            MFA Status: 
+            <span id="mfa-status-badge" class="badge badge-inactive">Inactive</span>
+          </div>
+
+          <!-- MFA Setup Container (Slides Open when toggling on) -->
+          <div id="mfa-setup-section" class="setup-section hidden">
+            <div class="setup-instruction-box">
+              <p class="step"><strong>Step 1:</strong> Scan this QR code with Google Authenticator, Authy, or Microsoft Authenticator.</p>
+              
+              <!-- QR Code Display Box -->
+              <div class="qr-code-wrapper">
+                <div class="qr-placeholder" id="qr-loading">Generating QR Code...</div>
+                <img id="mfa-qr-img" class="qr-img hidden" src="" alt="MFA QR Code">
+              </div>
+
+              <p class="step">Or type this manual setup key into your authenticator app:</p>
+              <div class="secret-key-copy-box">
+                <code id="mfa-secret-text" class="manual-secret"></code>
+              </div>
+
+              <hr class="divider">
+
+              <p class="step"><strong>Step 2:</strong> Enter the 6-digit confirmation code generated by your app to activate MFA.</p>
+              
+              <form id="mfa-confirm-form" class="inline-form">
+                <input type="text" id="mfa-confirm-code" placeholder="000000" maxlength="6" pattern="\d{6}" inputmode="numeric" required autocomplete="one-time-code">
+                <button type="submit" id="mfa-confirm-submit-btn" class="btn btn-primary btn-sm">
+                  <span>Verify & Enable</span>
+                  <div class="spinner hidden" id="confirm-spinner"></div>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- MFA Disable Modal/Section (Requires current code confirmation) -->
+          <div id="mfa-disable-section" class="setup-section hidden">
+            <div class="setup-instruction-box danger-box">
+              <p class="step"><strong>Disable 2-Factor Authentication:</strong> For your security, please enter the current 6-digit verification code from your authenticator app to disable MFA.</p>
+              
+              <form id="mfa-disable-form" class="inline-form">
+                <input type="text" id="mfa-disable-code" placeholder="000000" maxlength="6" pattern="\d{6}" inputmode="numeric" required autocomplete="one-time-code">
+                <button type="submit" id="mfa-disable-submit-btn" class="btn btn-danger btn-sm">
+                  <span>Verify & Disable</span>
+                  <div class="spinner hidden" id="disable-spinner"></div>
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 ShieldAuth security demo. Follows strict SOLID principles.</p>
+  </footer>
+
+  <!-- Frontend Logic Handler -->
+  <script src="/javascripts/app.js"></script>
+</body>
+</html>
