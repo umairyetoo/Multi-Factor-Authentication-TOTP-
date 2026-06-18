@@ -156,8 +156,9 @@ This is a **two-part process**: first the server generates the secret, then you 
    - Extracting 6 digits from the hash result (this is the "dynamic truncation" step).
 3. It also calculates the codes for 30 seconds in the past and 30 seconds in the future (to allow for slight clock differences between your phone and the server).
 4. If **any** of those three codes match what you typed → success!
-5. The secret is **permanently saved** to your user record and MFA is marked as **enabled**.
-6. Future logins will now require a TOTP code.
+6. The server generates 8 single-use **Backup Codes**, hashes them with SHA-256 for secure storage, and returns the plain text codes to your browser.
+7. You are prompted to save these backup codes.
+8. Future logins will now require a TOTP code or a backup code.
 
 ---
 
@@ -239,6 +240,23 @@ When MFA is active, logging in becomes a two-step process.
 
 ---
 
+### Step 8 — MFA Recovery via Backup Codes
+
+If you lose access to your authenticator app (e.g., you lose your phone), you can use a Backup Code to log in.
+
+| Detail | Value |
+|---|---|
+| **API** | `POST /api/mfa/verify-login` |
+| **You send** | `{ "code": "A9BCX3V2" }` (an 8-character backup code) |
+
+**What happens behind the scenes:**
+1. The server detects that the input is an 8-character alphanumeric string instead of a 6-digit TOTP code.
+2. It hashes the input using SHA-256 and checks if this hash exists in your user record's `mfaBackupCodes` array.
+3. If it matches, the server **removes** that specific hash from the database so the code can never be used again (single-use).
+4. The temporary session is upgraded to a full session and you are logged in.
+
+---
+
 ### API Reference (Quick Summary)
 
 | Method | Endpoint | Auth Required | Purpose |
@@ -283,6 +301,12 @@ A SHA-1 hash is 20 bytes long. To extract a user-friendly 6-digit code, we dynam
 
 ### 5. Clock-Drift Lookup Window
 Authenticating devices and servers can experience slight clock shifts. To ensure high usability, the verifier validates the token against the current counter step, the immediate past step ($\text{Counter} - 1$), and the immediate future step ($\text{Counter} + 1$), providing a 30-second leeway.
+
+### 6. Backup Codes Implementation
+To provide a secure recovery mechanism if the authenticator device is lost, the system generates single-use Backup Codes during setup.
+1. **High-Entropy Generation**: Uses `crypto.randomBytes(8)` mapped to an unambiguous Base32 character set (excluding 0, O, 1, I) to generate 8-character alphanumeric codes.
+2. **Secure Storage via Hashing**: Because the generated codes have high cryptographic entropy, they are hashed using the fast `SHA-256` algorithm (`crypto.createHash('sha256')`) before being saved in the database. The plain text code is only shown to the user once.
+3. **Single-Use Invalidation**: During login, if the user submits an 8-character code, the server hashes it and compares it to the stored `mfaBackupCodes` array. If a match is found, the hash is immediately removed from the array, permanently invalidating that code.
 
 ---
 

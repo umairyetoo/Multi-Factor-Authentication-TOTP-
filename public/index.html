@@ -111,12 +111,12 @@
 
       <!-- ================= MFA CHALLENGE SCREEN (Phase 2) ================= -->
       <div id="mfa-challenge-screen" class="screen hidden">
-        <h2 class="screen-title">Security Verification</h2>
-        <p class="screen-desc">Enter the 6-digit verification code from your authenticator app</p>
+        <h2 class="screen-title" id="mfa-challenge-title">Security Verification</h2>
+        <p class="screen-desc" id="mfa-challenge-desc">Enter the 6-digit verification code from your authenticator app.</p>
         
         <form id="mfa-challenge-form" class="form-layout">
           <div class="otp-container">
-            <input type="text" id="mfa-otp-code" class="otp-input" placeholder="000000" maxlength="6" pattern="\d{6}" inputmode="numeric" required autocomplete="one-time-code">
+            <input type="text" id="mfa-otp-code" class="otp-input" placeholder="000000" maxlength="6" required autocomplete="one-time-code" style="letter-spacing: 4px;">
           </div>
           
           <button type="submit" id="mfa-challenge-submit-btn" class="btn btn-primary">
@@ -126,7 +126,10 @@
         </form>
         
         <div class="footer-link">
-          <a href="#" id="cancel-mfa-btn">Back to Login</a>
+          <a href="#" id="toggle-backup-code-btn">App not available? Use a backup code</a>
+        </div>
+        <div class="footer-link" style="margin-top: 0.5rem;">
+          <a href="#" id="cancel-mfa-btn" style="color: var(--text-muted); font-weight: normal;">Back to Login</a>
         </div>
       </div>
 
@@ -190,6 +193,20 @@
                   <div class="spinner hidden" id="confirm-spinner"></div>
                 </button>
               </form>
+            </div>
+          </div>
+
+          <!-- Backup Codes Display Modal/Section (Shows only right after setup) -->
+          <div id="backup-codes-section" class="setup-section hidden">
+            <div class="setup-instruction-box warning-box">
+              <p class="step"><strong>Important: Save these Backup Codes!</strong></p>
+              <p class="mfa-desc">If you lose your device, you can use these one-time backup codes to log in. They are only shown once. Please save them in a password manager.</p>
+              
+              <div class="backup-codes-grid" id="backup-codes-grid">
+                <!-- Backup codes will be dynamically injected here -->
+              </div>
+
+              <button id="backup-codes-saved-btn" class="btn btn-secondary btn-sm" style="margin-top: 15px;">I have saved them</button>
             </div>
           </div>
 

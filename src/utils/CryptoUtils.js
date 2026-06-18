@@ -54,6 +54,39 @@ class CryptoUtils {
   static randomBytes(size) {
     return crypto.randomBytes(size);
   }
+  /**
+   * Generates cryptographically secure random alphanumeric backup codes.
+   * 
+   * @param {number} count - Number of codes to generate (default 8).
+   * @param {number} length - Length of each code (default 8).
+   * @returns {string[]} Array of backup codes.
+   */
+  static generateBackupCodes(count = 8, length = 8) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars (0, O, 1, I)
+    const codes = [];
+    
+    for (let i = 0; i < count; i++) {
+      let code = '';
+      const randomBytes = crypto.randomBytes(length);
+      for (let j = 0; j < length; j++) {
+        code += chars[randomBytes[j] % chars.length];
+      }
+      codes.push(code);
+    }
+    
+    return codes;
+  }
+
+  /**
+   * Hashes a backup code using SHA-256. 
+   * Backup codes have high entropy, so a fast hash like SHA-256 is secure and efficient.
+   * 
+   * @param {string} code - The plain text backup code.
+   * @returns {string} The SHA-256 hash in hex format.
+   */
+  static hashBackupCode(code) {
+    return crypto.createHash('sha256').update(code).digest('hex');
+  }
 }
 
 module.exports = CryptoUtils;

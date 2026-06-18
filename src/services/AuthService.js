@@ -40,7 +40,7 @@ class AuthService {
     });
 
     // Strip out credentials before returning
-    const { password: _, mfaSecret: __, ...userProfile } = user;
+    const { password: _, mfaSecret: __, mfaBackupCodes: ___, ...userProfile } = user;
     return userProfile;
   }
 
@@ -70,7 +70,7 @@ class AuthService {
     }
 
     // Clean user object profile
-    const { password: _, mfaSecret: __, ...userProfile } = user;
+    const { password: _, mfaSecret: __, mfaBackupCodes: ___, ...userProfile } = user;
 
     // Check if user has MFA setup and enabled
     if (user.mfaEnabled && user.mfaSecret) {
@@ -88,13 +88,13 @@ class AuthService {
   }
 
   /**
-   * Verifies a 6-digit TOTP token against user's secret.
+   * Verifies a 6-digit TOTP token or an 8-character backup code.
    * 
    * @param {number|string} userId 
    * @param {string} token 
    * @returns {Promise<boolean>}
    */
-  async verifyMfaToken(userId, token) {
+  async verifyMfaOrBackupCode(userId, token) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundError('User not found.');
@@ -104,6 +104,20 @@ class AuthService {
       throw new BadRequestError('MFA is not enabled for this user.');
     }
 
+    // Check if the token is a backup code (8 chars alphanumeric)
+    if (token && token.length === 8 && /^[A-Z2-9]{8}$/i.test(token)) {
+      const hashedInput = CryptoUtils.hashBackupCode(token.toUpperCase());
+      const backupCodes = user.mfaBackupCodes || [];
+      
+      if (backupCodes.includes(hashedInput)) {
+        // Backup code is valid. Remove it so it cannot be used again.
+        const updatedCodes = backupCodes.filter(code => code !== hashedInput);
+        await this.userRepository.update(userId, { mfaBackupCodes: updatedCodes });
+        return true;
+      }
+    }
+
+    // Otherwise, try standard TOTP verification
     return this.totpService.verify(user.mfaSecret, token);
   }
 
@@ -152,14 +166,20 @@ class AuthService {
       throw new BadRequestError('Invalid verification code. Please scan the QR code again and enter the code.');
     }
 
-    // Update user profile to enable MFA permanently
+    // Update user profile to enable MFA permanently and store hashed backup codes
+    const plainBackupCodes = CryptoUtils.generateBackupCodes(8, 8);
+    const hashedBackupCodes = plainBackupCodes.map(code => CryptoUtils.hashBackupCode(code));
+
     const updatedUser = await this.userRepository.update(userId, {
       mfaEnabled: true,
-      mfaSecret: secret
+      mfaSecret: secret,
+      mfaBackupCodes: hashedBackupCodes
     });
 
-    const { password: _, mfaSecret: __, ...userProfile } = updatedUser;
-    return userProfile;
+    const { password: _, mfaSecret: __, mfaBackupCodes: ___, ...userProfile } = updatedUser;
+    
+    // Return the user profile and the plain text backup codes (only shown once)
+    return { userProfile, backupCodes: plainBackupCodes };
   }
 
   /**
@@ -189,13 +209,14 @@ class AuthService {
       throw new BadRequestError('Invalid verification code. Access denied.');
     }
 
-    // Disable MFA and wipe the secret
+    // Disable MFA and wipe the secret and backup codes
     const updatedUser = await this.userRepository.update(userId, {
       mfaEnabled: false,
-      mfaSecret: null
+      mfaSecret: null,
+      mfaBackupCodes: []
     });
 
-    const { password: _, mfaSecret: __, ...userProfile } = updatedUser;
+    const { password: _, mfaSecret: __, mfaBackupCodes: ___, ...userProfile } = updatedUser;
     return userProfile;
   }
 }

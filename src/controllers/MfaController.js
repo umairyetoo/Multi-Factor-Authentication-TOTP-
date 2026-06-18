@@ -72,7 +72,7 @@ class MfaController {
       }
 
       // Verify and persist
-      const user = await this.authService.confirmMfaSetup(userId, tempSecret, code);
+      const { userProfile: user, backupCodes } = await this.authService.confirmMfaSetup(userId, tempSecret, code);
 
       // Clear the temporary session secret
       delete req.session.tempMfaSecret;
@@ -80,7 +80,7 @@ class MfaController {
       return res.status(200).json({
         status: 'success',
         message: 'MFA has been successfully verified and enabled.',
-        data: { user }
+        data: { user, backupCodes }
       });
     } catch (err) {
       next(err);
@@ -125,9 +125,9 @@ class MfaController {
       }
 
       // Verify the code
-      const isValid = await this.authService.verifyMfaToken(tempUserId, code);
+      const isValid = await this.authService.verifyMfaOrBackupCode(tempUserId, code);
       if (!isValid) {
-        throw new BadRequestError('Invalid verification code. Please try again.');
+        throw new BadRequestError('Invalid verification code or backup code. Please try again.');
       }
 
       // Code is valid! Upgrade session status

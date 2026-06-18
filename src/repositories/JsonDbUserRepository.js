@@ -59,7 +59,8 @@ class JsonDbUserRepository extends UserRepository {
       username: 'admin',
       password: hashedPassword,
       mfaEnabled: false,
-      mfaSecret: null
+      mfaSecret: null,
+      mfaBackupCodes: []
     };
 
     await this.db.push(`/users/${id}`, adminUser);
@@ -126,7 +127,8 @@ class JsonDbUserRepository extends UserRepository {
       username: userData.username,
       password: userData.password, // assumed pre-hashed
       mfaEnabled: false,
-      mfaSecret: null
+      mfaSecret: null,
+      mfaBackupCodes: []
     };
 
     await this.db.push(`/users/${id}`, newUser);

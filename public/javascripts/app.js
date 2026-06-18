@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const mfaStatusBadge = document.getElementById('mfa-status-badge');
   const mfaSetupSection = document.getElementById('mfa-setup-section');
   const mfaDisableSection = document.getElementById('mfa-disable-section');
+  const backupCodesSection = document.getElementById('backup-codes-section');
+  const backupCodesGrid = document.getElementById('backup-codes-grid');
+  const backupCodesSavedBtn = document.getElementById('backup-codes-saved-btn');
 
   // --- MFA Activation/Cancellation ---
   const mfaQrImg = document.getElementById('mfa-qr-img');
@@ -48,6 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const gotoLoginBtn = document.getElementById('goto-login-btn');
   const gotoSignupBtn = document.getElementById('goto-signup-btn');
   const cancelMfaBtn = document.getElementById('cancel-mfa-btn');
+
+  const toggleBackupCodeBtn = document.getElementById('toggleBackupCodeBtn') || document.getElementById('toggle-backup-code-btn');
+  const mfaChallengeTitle = document.getElementById('mfa-challenge-title');
+  const mfaChallengeDesc = document.getElementById('mfa-challenge-desc');
+
+  let isUsingBackupCode = false;
 
   // ================= UI Helper Functions =================
 
@@ -121,7 +130,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  restrictToNumeric(document.getElementById('mfa-otp-code'));
+  function restrictToAlphanumericUpper(inputElement) {
+    inputElement.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    });
+  }
+
+  // Allow alphanumeric for challenge (backup codes)
+  restrictToAlphanumericUpper(document.getElementById('mfa-otp-code'));
   restrictToNumeric(document.getElementById('mfa-confirm-code'));
   restrictToNumeric(document.getElementById('mfa-disable-code'));
 
@@ -186,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide any setup/disable sections that might be open
     mfaSetupSection.classList.add('hidden');
     mfaDisableSection.classList.add('hidden');
+    backupCodesSection.classList.add('hidden');
 
     switchScreen('dashboard-screen');
   }
@@ -212,6 +229,29 @@ document.addEventListener('DOMContentLoaded', () => {
     makeRequest('/api/auth/logout', { method: 'POST' }).finally(() => {
       switchScreen('login-screen');
     });
+  });
+
+  // --- Toggle Backup Code ---
+  toggleBackupCodeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    hideAlert();
+    const otpInput = document.getElementById('mfa-otp-code');
+    
+    isUsingBackupCode = !isUsingBackupCode;
+    
+    if (isUsingBackupCode) {
+      mfaChallengeDesc.textContent = "Enter an 8-character backup code.";
+      otpInput.placeholder = "XXXXXXXX";
+      otpInput.maxLength = 8;
+      otpInput.value = "";
+      toggleBackupCodeBtn.textContent = "Use authenticator app instead";
+    } else {
+      mfaChallengeDesc.textContent = "Enter the 6-digit verification code from your authenticator app.";
+      otpInput.placeholder = "000000";
+      otpInput.maxLength = 6;
+      otpInput.value = "";
+      toggleBackupCodeBtn.textContent = "App not available? Use a backup code";
+    }
   });
 
   // --- Sign Up Submit ---
@@ -295,10 +335,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const code = document.getElementById('mfa-otp-code').value;
 
-    if (!code || code.length !== 6) {
-      showAlert('Please enter a valid 6-digit code.');
-      triggerShake();
-      return;
+    if (isUsingBackupCode) {
+      if (!code || code.length !== 8) {
+        showAlert('Please enter a valid 8-character backup code.');
+        triggerShake();
+        return;
+      }
+    } else {
+      if (!code || code.length !== 6) {
+        showAlert('Please enter a valid 6-digit code.');
+        triggerShake();
+        return;
+      }
     }
 
     setBtnLoading('mfa-challenge-submit-btn', 'challenge-spinner', true);
@@ -397,16 +445,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       showAlert('MFA successfully enabled!', 'success');
-      setTimeout(() => {
-        renderDashboard(res.data.user);
-        mfaConfirmForm.reset();
-      }, 1000);
+      
+      // Render dashboard and then show backup codes
+      renderDashboard(res.data.user);
+      mfaConfirmForm.reset();
+      
+      // Show backup codes
+      if (res.data.backupCodes) {
+        backupCodesGrid.innerHTML = '';
+        res.data.backupCodes.forEach(code => {
+          const div = document.createElement('div');
+          div.className = 'backup-code-item';
+          div.textContent = code;
+          backupCodesGrid.appendChild(div);
+        });
+        
+        mfaSetupSection.classList.add('hidden');
+        backupCodesSection.classList.remove('hidden');
+      }
     } catch (err) {
       showAlert(err.message);
       triggerShake();
     } finally {
       setBtnLoading('mfa-confirm-submit-btn', 'confirm-spinner', false);
     }
+  });
+
+  // --- Hide Backup Codes Form ---
+  backupCodesSavedBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    backupCodesSection.classList.add('hidden');
   });
 
   // --- MFA Disable Confirmation ---
